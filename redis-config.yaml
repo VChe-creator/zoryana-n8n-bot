@@ -1,0 +1,6 @@
+redis:
+  - type: redis
+    name: bot-cache
+    ipAllowList: []
+    plan: free
+    maxmemoryPolicy: volatile-lru 

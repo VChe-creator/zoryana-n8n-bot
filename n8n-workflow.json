@@ -1,0 +1,203 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "webhookToken",
+        "endpoint": "webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "Вітаю! Оберіть опцію з меню:",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Set Menu\"].json}}"
+        }
+      },
+      "name": "Send Welcome",
+      "type": "n8n-nodes-base.telegram",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  keyboard: [\n    [{\"text\": \"⭐ Астрологія\"}],\n    [{\"text\": \"🔢 Нумерологія\"}],\n    [{\"text\": \"🔮 Таро\"}]\n  ],\n  resize_keyboard: true,\n  one_time_keyboard: false\n};"
+      },
+      "name": "Set Menu",
+      "type": "n8n-nodes-base.code",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.message.text}}",
+              "operation": "contains",
+              "value2": "Астрологія"
+            },
+            {
+              "value1": "={{$json.message.text}}",
+              "operation": "contains",
+              "value2": "Нумерологія"
+            },
+            {
+              "value1": "={{$json.message.text}}",
+              "operation": "contains",
+              "value2": "Таро"
+            }
+          ]
+        }
+      },
+      "name": "Router",
+      "type": "n8n-nodes-base.switch",
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "Оберіть ваш знак зодіаку:",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Zodiac Menu\"].json}}"
+        }
+      },
+      "name": "Astrology Handler",
+      "type": "n8n-nodes-base.telegram",
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": `
+          return {
+            keyboard: [
+              [{text: "♈️ Овен"}, {text: "♉️ Телець"}, {text: "♊️ Близнюки"}],
+              [{text: "♋️ Рак"}, {text: "♌️ Лев"}, {text: "♍️ Діва"}],
+              [{text: "♎️ Терези"}, {text: "♏️ Скорпіон"}, {text: "♐️ Стрілець"}],
+              [{text: "♑️ Козеріг"}, {text: "♒️ Водолій"}, {text: "♓️ Риби"}],
+              [{text: "🔙 Назад"}]
+            ],
+            resize_keyboard: true
+          };
+        `
+      },
+      "name": "Zodiac Menu",
+      "type": "n8n-nodes-base.code",
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "Оберіть тип розрахунку:",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Numerology Menu\"].json}}"
+        }
+      },
+      "name": "Numerology Handler",
+      "type": "n8n-nodes-base.telegram",
+      "position": [1050, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": `
+          return {
+            keyboard: [
+              [{text: "1️⃣ Число життєвого шляху"}],
+              [{text: "2️⃣ Число особистого року"}],
+              [{text: "❤️ Нумерологічна сумісність"}],
+              [{text: "👤 Число імені"}],
+              [{text: "🔙 Назад"}]
+            ],
+            resize_keyboard: true
+          };
+        `
+      },
+      "name": "Numerology Menu",
+      "type": "n8n-nodes-base.code",
+      "position": [1050, 800]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "🔮 Розділ Таро знаходиться в розробці. Будь ласка, спробуйте пізніше.",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Main Menu\"].json}}"
+        }
+      },
+      "name": "Tarot Handler",
+      "type": "n8n-nodes-base.telegram",
+      "position": [1050, 1000]
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Menu": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome": {
+      "main": [
+        [
+          {
+            "node": "Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router": {
+      "main": [
+        [
+          {
+            "node": "Astrology Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Numerology Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tarot Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 

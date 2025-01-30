@@ -1,0 +1,14 @@
+{
+  "main_menu": {
+    "astrology": {
+      "zodiac_signs": ["Овен", "Телець", "Близнюки", "..."],
+      "periods": ["daily", "weekly", "monthly", "yearly"]
+    },
+    "numerology": {
+      "calculations": ["life_path", "personal_year", "compatibility", "name_number"]
+    },
+    "tarot": {
+      "status": "development"
+    }
+  }
+} 

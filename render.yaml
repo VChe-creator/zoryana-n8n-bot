@@ -1,48 +1,29 @@
 services:
   - type: web
-    name: astro-bot-n8n
+    name: n8n
     env: docker
-    dockerfilePath: ./Dockerfile
+    plan: free
+    dockerCommand: n8n start
     envVars:
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: DB_POSTGRESDB_DATABASE
-        sync: false
-      - key: DB_POSTGRESDB_HOST
-        sync: false
-      - key: DB_POSTGRESDB_PASSWORD
-        sync: false
-      - key: DB_POSTGRESDB_PORT
-        value: 5432
-      - key: DB_POSTGRESDB_USER
-        sync: false
       - key: N8N_HOST
-        sync: false
-      - key: N8N_PORT
-        value: 443
+        value: zoryana-n8n-bot.onrender.com
       - key: N8N_PROTOCOL
         value: https
-      - key: N8N_AUTH_USERNAME
-        sync: false
-      - key: N8N_AUTH_PASSWORD
-        sync: false
+      - key: N8N_PORT
+        value: 443
+      - key: WEBHOOK_URL
+        value: https://zoryana-n8n-bot.onrender.com/
       - key: N8N_ENCRYPTION_KEY
-        sync: false
-      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
-        value: "true"
-      - key: N8N_TRUST_PROXY
-        value: "true"
-    disk:
-      name: n8n-data
-      mountPath: /home/n8n/.n8n
-      sizeGB: 1
-    healthCheckPath: /healthz
-    numInstances: 1
-    plan: free
-    metrics:
-      - path: /metrics
-        port: 9100 
+        value: "YmG7f/tIoIrK5xZLKsRYLzbp8djGNdSfRhna70roR7Q="
+      - key: REDIS_URL
+        value: "redis://default:j9w953Lks15xvJENiiVFui0OQInF97m2@redis-18669.c135.eu-central-1-1.ec2.cloud.redislabs.com:18669"
+      - key: TELEGRAM_BOT_TOKEN
+        value: "8018451908:AAERWuFccBB81RNNMSYtt7VxOKPqhsGNi64"
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: true
+      - key: N8N_BASIC_AUTH_USER
+        value: admin
+      - key: N8N_BASIC_AUTH_PASSWORD
+        value: ZoryanaBot14268Secre!
+    healthCheckPath: /
+    autoDeploy: true 
