@@ -1,18 +1,18 @@
-const numerologyMenu = {
-  parameters: {
-    jsCode: `
-      return {
-        keyboard: [
-          [{text: "1️⃣ Число життєвого шляху"}],
-          [{text: "2️⃣ Число особистого року"}],
-          [{text: "❤️ Нумерологічна сумісність"}],
-          [{text: "👤 Число імені"}],
-          [{text: "🔙 Назад"}]
-        ],
-        resize_keyboard: true
-      };
-    `
-  },
-  name: "Numerology Menu",
-  type: "n8n-nodes-base.code"
+function calculateLifePath(birthdate) {
+  // Перетворюємо дату у формат ДДММРРРР
+  const dateStr = birthdate.replace(/[^0-9]/g, '');
+  
+  // Сумуємо всі цифри
+  let sum = dateStr.split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+  
+  // Зводимо до однозначного числа
+  while (sum > 9) {
+    sum = sum.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+  }
+  
+  return sum;
+}
+
+module.exports = {
+  calculateLifePath
 }; 
