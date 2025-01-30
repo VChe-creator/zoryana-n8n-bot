@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: astro-bot-n8n
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: DB_POSTGRESDB_DATABASE
+        sync: false
+      - key: DB_POSTGRESDB_HOST
+        sync: false
+      - key: DB_POSTGRESDB_PASSWORD
+        sync: false
+      - key: DB_POSTGRESDB_PORT
+        value: 5432
+      - key: DB_POSTGRESDB_USER
+        sync: false
+      - key: N8N_HOST
+        sync: false
+      - key: N8N_PORT
+        value: 443
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_AUTH_USERNAME
+        sync: false
+      - key: N8N_AUTH_PASSWORD
+        sync: false
+      - key: N8N_ENCRYPTION_KEY
+        sync: false
+      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+        value: "true"
+      - key: N8N_TRUST_PROXY
+        value: "true"
+    disk:
+      name: n8n-data
+      mountPath: /home/n8n/.n8n
+      sizeGB: 1
+    healthCheckPath: /healthz
+    numInstances: 1
+    plan: free
+    metrics:
+      - path: /metrics
+        port: 9100 

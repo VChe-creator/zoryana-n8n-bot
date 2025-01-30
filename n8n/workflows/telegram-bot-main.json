@@ -1,0 +1,365 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "webhookBasic",
+        "path": "telegram-webhook"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "botToken": "={{ $env.TELEGRAM_BOT_TOKEN }}",
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  const message = items[0].json;\n  const userId = message.message?.from?.id || message.callback_query?.from?.id;\n  const text = message.message?.text || message.callback_query?.data;\n\n  return {\n    json: {\n      userId,\n      text,\n      rawData: message\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      error: true,\n      message: 'Вибачте, сталася помилка. Спробуйте пізніше.'\n    }\n  }\n}"
+      },
+      "name": "Parse Update",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text }}",
+              "value2": "/start"
+            }
+          ]
+        }
+      },
+      "name": "Is Start Command?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "Вітаю! Я ваш астрологічний помічник. Оберіть, будь ласка, розділ:\n\n🔮 Астрологія\n🔢 Нумерологія\n⭐ Таро",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [
+                {
+                  "text": "🔮 Астрологія",
+                  "callback_data": "astrology"
+                }
+              ],
+              [
+                {
+                  "text": "🔢 Нумерологія",
+                  "callback_data": "numerology"
+                }
+              ],
+              [
+                {
+                  "text": "⭐ Таро",
+                  "callback_data": "tarot"
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "name": "Send Main Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text }}",
+              "value2": "astrology"
+            }
+          ]
+        }
+      },
+      "name": "Is Astrology?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "Оберіть ваш знак зодіаку:",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [
+                {"text": "♈ Овен", "callback_data": "zodiac_aries"},
+                {"text": "♉ Телець", "callback_data": "zodiac_taurus"},
+                {"text": "♊ Близнюки", "callback_data": "zodiac_gemini"}
+              ],
+              [
+                {"text": "♋ Рак", "callback_data": "zodiac_cancer"},
+                {"text": "♌ Лев", "callback_data": "zodiac_leo"},
+                {"text": "♍ Діва", "callback_data": "zodiac_virgo"}
+              ],
+              [
+                {"text": "♎ Терези", "callback_data": "zodiac_libra"},
+                {"text": "♏ Скорпіон", "callback_data": "zodiac_scorpio"},
+                {"text": "♐ Стрілець", "callback_data": "zodiac_sagittarius"}
+              ],
+              [
+                {"text": "♑ Козеріг", "callback_data": "zodiac_capricorn"},
+                {"text": "♒ Водолій", "callback_data": "zodiac_aquarius"},
+                {"text": "♓ Риби", "callback_data": "zodiac_pisces"}
+              ],
+              [{"text": "🔙 Назад", "callback_data": "/start"}]
+            ]
+          }
+        }
+      },
+      "name": "Send Zodiac Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text }}",
+              "value2": "numerology"
+            }
+          ]
+        }
+      },
+      "name": "Is Numerology?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        850,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "Оберіть тип нумерологічного розрахунку:",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [{"text": "1️⃣ Число життєвого шляху", "callback_data": "num_life_path"}],
+              [{"text": "2️⃣ Число особистого року", "callback_data": "num_personal_year"}],
+              [{"text": "❤️ Нумерологічна сумісність", "callback_data": "num_compatibility"}],
+              [{"text": "👤 Число імені", "callback_data": "num_name"}],
+              [{"text": "🔙 Назад", "callback_data": "/start"}]
+            ]
+          }
+        }
+      },
+      "name": "Send Numerology Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text }}",
+              "value2": "tarot"
+            }
+          ]
+        }
+      },
+      "name": "Is Tarot?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        850,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "🔮 Розділ Таро знаходиться в розробці. Будь ласка, оберіть інший розділ.",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [{"text": "🔙 Повернутися до головного меню", "callback_data": "/start"}]
+            ]
+          }
+        }
+      },
+      "name": "Send Tarot Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  const redis = $node['Redis'];\n  if (!redis) {\n    throw new Error('Redis не доступний');\n  }\n\n  // Зберігаємо стан користувача\n  await redis.set(`user:${$json.userId}:state`, $json.text);\n  \n  return $json;\n} catch (error) {\n  console.error('Redis error:', error);\n  return $json; // Продовжуємо без Redis\n}",
+        "name": "Handle Redis State"
+      },
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Telegram Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Update": {
+      "main": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Send Main Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Start Command?": {
+      "main": [
+        [
+          {
+            "node": "Send Main Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Astrology?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Astrology?": {
+      "main": [
+        [
+          {
+            "node": "Send Zodiac Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Numerology?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Numerology?": {
+      "main": [
+        [
+          {
+            "node": "Send Numerology Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Tarot?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Tarot?": {
+      "main": [
+        [
+          {
+            "node": "Send Tarot Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 

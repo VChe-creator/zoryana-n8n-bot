@@ -1,0 +1,124 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text.startsWith('num_') }}",
+              "operation": "regex",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Is Numerology Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  const requestType = $json.text.replace('num_', '');\n  let message = '';\n  let keyboard = [];\n\n  switch(requestType) {\n    case 'life_path':\n      message = 'Будь ласка, введіть вашу дату народження у форматі ДД.ММ.РРРР';\n      keyboard = [[{text: '🔙 Назад', callback_data: 'numerology'}]];\n      break;\n      \n    case 'personal_year':\n      message = 'Будь ласка, введіть вашу дату народження у форматі ДД.ММ.РРРР';\n      keyboard = [[{text: '🔙 Назад', callback_data: 'numerology'}]];\n      break;\n      \n    case 'compatibility':\n      message = 'Будь ласка, введіть дві дати народження у форматі:\\nДД.ММ.РРРР\\nДД.ММ.РРРР';\n      keyboard = [[{text: '🔙 Назад', callback_data: 'numerology'}]];\n      break;\n      \n    case 'name':\n      message = 'Будь ласка, введіть ім\\'я для розрахунку';\n      keyboard = [[{text: '🔙 Назад', callback_data: 'numerology'}]];\n      break;\n  }\n\n  return {\n    json: {\n      message,\n      keyboard,\n      requestType\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      error: true,\n      message: 'Помилка при обробці запиту. Спробуйте пізніше.'\n    }\n  }\n}"
+      },
+      "name": "Prepare Request Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": "={{ $json.keyboard }}"
+          }
+        }
+      },
+      "name": "Send Request Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  if ($json.error) {\n    return $json;\n  }\n\n  const interpretations = $node['Read Interpretations'].json;\n  if (!interpretations) {\n    throw new Error('Помилка читання інтерпретацій');\n  }\n\n  // Завантажуємо інтерпретації\n  const interpretations = $node['Read Interpretations'].json;\n\n  // Функція для обчислення числа життєвого шляху\n  function calculateLifePath(dateStr) {\n    const [day, month, year] = dateStr.split('.');\n    let sum = day.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    sum += month.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    sum += year.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    \n    while(sum > 9 && sum !== 11 && sum !== 22) {\n      sum = sum.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    }\n    \n    return sum;\n  }\n\n  // Функція для обчислення числа особистого року\n  function calculatePersonalYear(dateStr) {\n    const [day, month, year] = dateStr.split('.');\n    const currentYear = new Date().getFullYear();\n    \n    let sum = day.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    sum += month.split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    sum += currentYear.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    \n    while(sum > 9) {\n      sum = sum.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    }\n    \n    return sum;\n  }\n\n  // Функція для обчислення числа імені\n  function calculateNameNumber(name) {\n    const values = {\n      'а': 1, 'б': 2, 'в': 3, 'г': 4, 'ґ': 4, 'д': 5, 'е': 6, 'є': 6,\n      'ж': 7, 'з': 8, 'и': 9, 'і': 1, 'ї': 1, 'й': 2, 'к': 3, 'л': 4,\n      'м': 5, 'н': 6, 'о': 7, 'п': 8, 'р': 9, 'с': 1, 'т': 2, 'у': 3,\n      'ф': 4, 'х': 5, 'ц': 6, 'ч': 7, 'ш': 8, 'щ': 9, 'ь': 1, 'ю': 2,\n      'я': 3\n    };\n    \n    let sum = name.toLowerCase().split('').reduce((acc, char) => {\n      return acc + (values[char] || 0);\n    }, 0);\n    \n    while(sum > 9 && sum !== 11 && sum !== 22) {\n      sum = sum.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    }\n    \n    return sum;\n  }\n\n  // Функція для обчислення сумісності\n  function calculateCompatibility(date1, date2) {\n    const num1 = calculateLifePath(date1);\n    const num2 = calculateLifePath(date2);\n    \n    let compatibility = Math.abs(num1 - num2);\n    if(compatibility > 9) {\n      compatibility = compatibility.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);\n    }\n    \n    return { num1, num2, compatibility };\n  }\n\n  // Отримуємо тип запиту та дані\n  const { requestType, data } = $json;\n  let result = '';\n\n  // Обробляємо запит відповідно до типу\n  switch(requestType) {\n    case 'life_path':\n      const lifePathNumber = calculateLifePath(data);\n      result = `🔮 Число життєвого шляху: ${lifePathNumber}\\n\\n${interpretations.lifePath[lifePathNumber]}`;\n      break;\n      \n    case 'personal_year':\n      const personalYearNumber = calculatePersonalYear(data);\n      result = `📅 Число особистого року: ${personalYearNumber}\\n\\n${interpretations.personalYear[personalYearNumber]}`;\n      break;\n      \n    case 'name':\n      const nameNumber = calculateNameNumber(data);\n      result = `👤 Число вашого імені: ${nameNumber}\\n\\n${interpretations.name[nameNumber]}`;\n      break;\n      \n    case 'compatibility':\n      const [date1, date2] = data.split('\\n');\n      const { num1, num2, compatibility } = calculateCompatibility(date1, date2);\n      result = `❤️ Нумерологічна сумісність:\\n\\nПерше число життєвого шляху: ${num1}\\nДруге число життєвого шляху: ${num2}\\nЧисло сумісності: ${compatibility}\\n\\n${interpretations.compatibility[compatibility]}`;\n      break;\n  }\n\n  return {\n    json: {\n      result,\n      keyboard: [[{text: '🔙 Назад до нумерології', callback_data: 'numerology'}]]\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      error: true,\n      message: 'Помилка при розрахунках. Перевірте формат введених даних.'\n    }\n  };\n}"
+      },
+      "name": "Calculate Numerology",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "={{ $json.result }}",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": "={{ $json.keyboard }}"
+          }
+        }
+      },
+      "name": "Send Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "filePath": "./numerology-interpretations.json"
+      },
+      "name": "Read Interpretations",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [650, 450]
+    }
+  ],
+  "connections": {
+    "Is Numerology Request?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Request Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Request Message": {
+      "main": [
+        [
+          {
+            "node": "Send Request Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Numerology": {
+      "main": [
+        [
+          {
+            "node": "Send Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Interpretations": {
+      "main": [
+        [
+          {
+            "node": "Calculate Numerology",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 

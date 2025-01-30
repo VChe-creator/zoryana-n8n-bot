@@ -1,0 +1,150 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.text.startsWith('zodiac_') }}",
+              "operation": "regex",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Is Zodiac Selection?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "Оберіть період для прогнозу:",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [{"text": "📅 На сьогодні", "callback_data": "forecast_today"}],
+              [{"text": "📆 На тиждень", "callback_data": "forecast_week"}],
+              [{"text": "📅 На місяць", "callback_data": "forecast_month"}],
+              [{"text": "📆 На рік", "callback_data": "forecast_year"}],
+              [{"text": "🔙 Назад до вибору знаку", "callback_data": "astrology"}]
+            ]
+          }
+        }
+      },
+      "name": "Send Forecast Period Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  const zodiacSign = $json.text.replace('zodiac_', '');\n  const period = $json.forecast_period || 'today';\n\n  const prompt = `Створи астрологічний прогноз для знаку ${zodiacSign} на ${period}. Прогноз має бути:\n1. Позитивним та мотивуючим\n2. Конкретним та практичним\n3. Структурованим за сферами життя (кар'єра, стосунки, здоров'я)\n4. Довжиною 300-400 слів\n\nНапиши українською мовою.`;\n\n  return {\n    json: {\n      prompt,\n      zodiacSign,\n      period\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      error: true,\n      message: 'Помилка при формуванні прогнозу. Спробуйте пізніше.'\n    }\n  }\n}"
+      },
+      "name": "Prepare OpenAI Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "apiKey",
+        "apiKey": "={{ $env.OPENAI_API_KEY }}",
+        "model": "gpt-3.5-turbo",
+        "prompt": "={{ $json.prompt }}",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 500,
+          "frequencyPenalty": 0.5,
+          "presencePenalty": 0.5
+        }
+      },
+      "name": "Generate Forecast",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  if ($json.error) {\n    return $json;\n  }\n  \n  const forecast = $json.response;\n  if (!forecast) {\n    throw new Error('Немає відповіді від OpenAI');\n  }\n\n  return {\n    json: {\n      forecast,\n      zodiacSign: $json.zodiacSign,\n      error: false\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      error: true,\n      message: 'Помилка при отриманні прогнозу. Спробуйте пізніше.'\n    }\n  };\n}"
+      },
+      "name": "Process OpenAI Response"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.userId }}",
+        "text": "={{ $json.forecast }}",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [{"text": "🔙 Назад до вибору періоду", "callback_data": "={{ 'zodiac_' + $json.zodiacSign }}"}],
+              [{"text": "🏠 Головне меню", "callback_data": "/start"}]
+            ]
+          }
+        }
+      },
+      "name": "Send Forecast",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Is Zodiac Selection?": {
+      "main": [
+        [
+          {
+            "node": "Send Forecast Period Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Forecast Period Menu": {
+      "main": [
+        [
+          {
+            "node": "Prepare OpenAI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OpenAI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Forecast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Forecast": {
+      "main": [
+        [
+          {
+            "node": "Process OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process OpenAI Response": {
+      "main": [
+        [
+          {
+            "node": "Send Forecast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 
