@@ -2,48 +2,35 @@
   "nodes": [
     {
       "parameters": {
-        "authentication": "genericCredentialType",
-        "updates": ["message", "callback_query"],
-        "messageTypes": ["text_message"]
+        "authentication": "webhookToken",
+        "endpoint": "webhook",
+        "responseMode": "lastNode",
+        "options": {}
       },
-      "id": "telegramTrigger",
-      "name": "Telegram Trigger",
-      "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1,
-      "position": [250, 300],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram",
-          "name": "Telegram account"
-        }
-      }
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
     },
     {
       "parameters": {
-        "jsCode": "// Отримуємо дані з тригера\nconst item = $input.all()[0].json;\n\n// Визначаємо тип оновлення\nconst isCallback = !!item.callback_query;\nconst message = isCallback ? item.callback_query.message : item.message;\nconst text = isCallback ? item.callback_query.data : message.text;\n\nreturn {\n    json: {\n        chatId: message.chat.id,\n        userId: isCallback ? item.callback_query.from.id : message.from.id,\n        text,\n        isCallback,\n        originalMessage: message,\n        callbackQueryId: isCallback ? item.callback_query.id : null\n    }\n};"
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "Вітаю! Оберіть опцію з меню:",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Set Menu\"].json}}"
+        }
       },
-      "id": "parseUpdate",
-      "name": "Parse Update",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
+      "name": "Send Welcome",
+      "type": "n8n-nodes-base.telegram",
       "position": [450, 300]
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json.text}}",
-              "operation": "contains",
-              "value2": "/start"
-            }
-          ]
-        }
+        "jsCode": "return {\n  keyboard: [\n    [{\"text\": \"⭐ Астрологія\"}],\n    [{\"text\": \"🔢 Нумерологія\"}],\n    [{\"text\": \"🔮 Таро\"}]\n  ],\n  resize_keyboard: true,\n  one_time_keyboard: false\n};"
       },
-      "id": "commandRouter",
-      "name": "Command Router",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
+      "name": "Set Menu",
+      "type": "n8n-nodes-base.code",
       "position": [650, 300]
     },
     {
@@ -51,227 +38,161 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{$json.text}}",
-              "operation": "regex",
-              "value2": "^(astrology|numerology|tarot|main_menu)$"
-            }
-          ]
-        }
-      },
-      "id": "menuRouter",
-      "name": "Menu Router",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
-      "position": [850, 400]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
+              "value1": "={{$json.message.text}}",
+              "operation": "contains",
+              "value2": "Астрологія"
+            },
             {
-              "value1": "={{$json.text}}",
-              "operation": "regex",
-              "value2": "^zodiac:"
-            }
-          ]
-        }
-      },
-      "id": "zodiacRouter",
-      "name": "Zodiac Router",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
-      "position": [1050, 400]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
+              "value1": "={{$json.message.text}}",
+              "operation": "contains",
+              "value2": "Нумерологія"
+            },
             {
-              "value1": "={{$json.text}}",
-              "operation": "regex",
-              "value2": "^period:"
+              "value1": "={{$json.message.text}}",
+              "operation": "contains",
+              "value2": "Таро"
             }
           ]
         }
       },
-      "id": "periodRouter",
-      "name": "Period Router",
+      "name": "Router",
       "type": "n8n-nodes-base.switch",
-      "typeVersion": 1,
-      "position": [1250, 400]
+      "position": [850, 300]
     },
     {
       "parameters": {
-        "jsCode": "const menu = require('./telegram-menu');\nconst mainMenu = menu.getMainMenu();\n\nreturn {\n    json: {\n        chatId: $input.all()[0].json.chatId,\n        text: 'Вітаю! Я ваш персональний астролог і нумеролог. Оберіть розділ, який вас цікавить:',\n        reply_markup: JSON.stringify(mainMenu)\n    }\n};"
-      },
-      "id": "prepareWelcome",
-      "name": "Prepare Welcome",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [850, 200]
-    },
-    {
-      "parameters": {
-        "jsCode": "const menu = require('./telegram-menu');\nconst astrologyMenu = menu.getAstrologyMenu();\n\nreturn {\n    json: {\n        chatId: $input.all()[0].json.chatId,\n        text: 'Оберіть ваш знак зодіаку:',\n        reply_markup: JSON.stringify(astrologyMenu)\n    }\n};"
-      },
-      "id": "prepareAstrologyMenu",
-      "name": "Prepare Astrology Menu",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [1050, 400]
-    },
-    {
-      "parameters": {
-        "jsCode": "const menu = require('./telegram-menu');\nconst zodiacSign = $input.all()[0].json.text.split(':')[1];\nconst periodMenu = menu.getPeriodMenu(zodiacSign);\n\nreturn {\n    json: {\n        chatId: $input.all()[0].json.chatId,\n        text: `Оберіть період для прогнозу для знаку ${zodiacSign}:`,\n        reply_markup: JSON.stringify(periodMenu)\n    }\n};"
-      },
-      "id": "preparePeriodMenu",
-      "name": "Prepare Period Menu",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [1250, 400]
-    },
-    {
-      "parameters": {
-        "authentication": "genericCredentialType",
+        "resource": "message",
         "operation": "sendMessage",
-        "chatId": "={{$json.chatId}}",
-        "text": "={{$json.text}}",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "Оберіть ваш знак зодіаку:",
         "additionalFields": {
-          "reply_markup": "={{$json.reply_markup}}"
+          "reply_markup": "={{$node[\"Zodiac Menu\"].json}}"
         }
       },
-      "id": "sendMessage",
-      "name": "Send Message",
+      "name": "Astrology Handler",
       "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [1450, 300],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram",
-          "name": "Telegram account"
-        }
-      }
+      "position": [1050, 200]
     },
     {
       "parameters": {
-        "authentication": "genericCredentialType",
-        "operation": "answerCallbackQuery",
-        "queryId": "={{$json.callbackQueryId}}",
-        "options": {
-          "showAlert": false
+        "jsCode": `
+          return {
+            keyboard: [
+              [{text: "♈️ Овен"}, {text: "♉️ Телець"}, {text: "♊️ Близнюки"}],
+              [{text: "♋️ Рак"}, {text: "♌️ Лев"}, {text: "♍️ Діва"}],
+              [{text: "♎️ Терези"}, {text: "♏️ Скорпіон"}, {text: "♐️ Стрілець"}],
+              [{text: "♑️ Козеріг"}, {text: "♒️ Водолій"}, {text: "♓️ Риби"}],
+              [{text: "🔙 Назад"}]
+            ],
+            resize_keyboard: true
+          };
+        `
+      },
+      "name": "Zodiac Menu",
+      "type": "n8n-nodes-base.code",
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "Оберіть тип розрахунку:",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Numerology Menu\"].json}}"
         }
       },
-      "id": "answerCallback",
-      "name": "Answer Callback",
+      "name": "Numerology Handler",
       "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [1450, 400],
-      "credentials": {
-        "telegramApi": {
-          "id": "telegram",
-          "name": "Telegram account"
+      "position": [1050, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": `
+          return {
+            keyboard: [
+              [{text: "1️⃣ Число життєвого шляху"}],
+              [{text: "2️⃣ Число особистого року"}],
+              [{text: "❤️ Нумерологічна сумісність"}],
+              [{text: "👤 Число імені"}],
+              [{text: "🔙 Назад"}]
+            ],
+            resize_keyboard: true
+          };
+        `
+      },
+      "name": "Numerology Menu",
+      "type": "n8n-nodes-base.code",
+      "position": [1050, 800]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "🔮 Розділ Таро знаходиться в розробці. Будь ласка, спробуйте пізніше.",
+        "additionalFields": {
+          "reply_markup": "={{$node[\"Main Menu\"].json}}"
         }
-      }
+      },
+      "name": "Tarot Handler",
+      "type": "n8n-nodes-base.telegram",
+      "position": [1050, 1000]
     }
   ],
   "connections": {
-    "Telegram Trigger": {
+    "Telegram Webhook": {
       "main": [
         [
           {
-            "node": "Parse Update",
+            "node": "Set Menu",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Update": {
+    "Set Menu": {
       "main": [
         [
           {
-            "node": "Command Router",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Menu Router",
+            "node": "Send Welcome",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Command Router": {
+    "Send Welcome": {
       "main": [
         [
           {
-            "node": "Prepare Welcome",
+            "node": "Router",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Menu Router": {
+    "Router": {
       "main": [
         [
           {
-            "node": "Prepare Astrology Menu",
+            "node": "Astrology Handler",
             "type": "main",
             "index": 0
           }
-        ]
-      ]
-    },
-    "Zodiac Router": {
-      "main": [
+        ],
         [
           {
-            "node": "Prepare Period Menu",
+            "node": "Numerology Handler",
             "type": "main",
             "index": 0
           }
-        ]
-      ]
-    },
-    "Prepare Welcome": {
-      "main": [
+        ],
         [
           {
-            "node": "Send Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Astrology Menu": {
-      "main": [
-        [
-          {
-            "node": "Send Message",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Answer Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Period Menu": {
-      "main": [
-        [
-          {
-            "node": "Send Message",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Answer Callback",
+            "node": "Tarot Handler",
             "type": "main",
             "index": 0
           }
